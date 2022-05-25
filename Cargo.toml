@@ -1,0 +1,33 @@
+[package]
+name = "axum-yaml"
+version = "0.2.0"
+edition = "2021"
+authors = ["Mykhailo Gavrylov <gavrikster@gmail.com>"]
+description = "YAML extractor for axum"
+repository = "https://github.com/gavrik/axum-yaml"
+readme = "README.md"
+license = "MIT"
+keywords = ["axum", "yaml", "parser", "parsing", "extractor"]
+categories = ["parsing", "text-processing", "encoding", "web-programming", "web-programming::http-server"]
+exclude = [
+    ".github/*"
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = "0.5"
+axum-core = "0.2.4"
+hyper = { version = "0.14.18", features = ["full"] }
+tokio = { version = "1.18.2", features = ["full"] }
+tower = "0.4.12"
+serde = { version = "1.0", features = ["derive"]}
+serde_yaml = "0.8"
+mime = { version = "0.3.16" }
+
+[dev-dependencies]
+axum = "0.5"
+reqwest = "0.11"
+tower-service = "0.3"
+tower = "0.4.12"
+http = "0.2.7"
