@@ -2,7 +2,7 @@
 name = "axum-yaml"
 version = "0.2.0"
 edition = "2021"
-authors = ["Mykhailo Gavrylov <gavrikster@gmail.com>"]
+authors = ["Mykhailo (Mike) Gavrylov <gavrikster@gmail.com>"]
 description = "YAML extractor for axum"
 repository = "https://github.com/gavrik/axum-yaml"
 readme = "README.md"
@@ -31,3 +31,4 @@ reqwest = "0.11"
 tower-service = "0.3"
 tower = "0.4.12"
 http = "0.2.7"
+uuid = { version = "1.1.0", features = ["serde"] }
