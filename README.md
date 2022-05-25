@@ -1,5 +1,10 @@
 # axum-yaml
 
+`axum-yaml` adds YAML features to axum
+
+[![Documentation](https://docs.rs/axum-yaml/badge.svg)](https://docs.rs/axum-yaml)
+[![Crates.io](https://img.shields.io/crates/v/axum-yaml)](https://crates.io/crates/axum-yaml)
+
 ## Features
 
 * Serialize, Deserialize YAML from request/response
@@ -74,3 +79,7 @@ async {
 ## License
 
 This project is licensed under the MIT license
+
+[docs]: https://docs.rs/axum-yaml
+[serde]: https://serde.rs/
+[yaml]: https://yaml.org/
