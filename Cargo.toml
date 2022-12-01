@@ -1,6 +1,6 @@
 [package]
 name = "axum-yaml"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Mykhailo (Mike) Gavrylov <gavrikster@gmail.com>"]
 description = "YAML extractor for axum"
