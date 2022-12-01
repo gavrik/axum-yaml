@@ -6,7 +6,7 @@
 //! 
 use axum::{
     body::{Bytes, HttpBody},
-    extract::{FromRequest, RequestParts},
+    extract::FromRequest,
     BoxError, 
     async_trait,
 };
@@ -14,6 +14,7 @@ use axum::response::{IntoResponse, Response};
 use axum::http::{
     header::{self, HeaderValue},
     StatusCode,
+    Request,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::ops::{Deref, DerefMut};
@@ -93,18 +94,19 @@ use crate::rejection::*;
 pub struct Yaml<T>(pub T);
 
 #[async_trait]
-impl<T, B> FromRequest<B> for Yaml<T>
+impl<T, S, B> FromRequest<S, B> for Yaml<T>
 where
     T: DeserializeOwned,
-    B: HttpBody + Send,
+    B: HttpBody + Send + 'static,
     B::Data: Send,
     B::Error: Into<BoxError>,
+    S: Send + Sync + 'static,
 {
     type Rejection = YamlRejection;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        if yaml_content_type(req) {
-            let bytes = Bytes::from_request(req).await?;
+    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        if yaml_content_type(&req) {
+            let bytes = Bytes::from_request(req, state).await?;
 
             let value = match serde_yaml::from_slice(&bytes) {
                 Ok(value) => value,
@@ -121,7 +123,7 @@ where
     }
 }
 
-fn yaml_content_type<B>(req: &RequestParts<B>) -> bool {
+fn yaml_content_type<B>(req: &Request<B>) -> bool {
     let content_type = if let Some(content_type) = req.headers().get(header::CONTENT_TYPE) {
         content_type
     } else {

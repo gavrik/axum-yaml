@@ -16,8 +16,8 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.5"
-axum-core = "0.2.4"
+axum = "0.6"
+axum-core = "0.3.0"
 hyper = { version = "0.14.18", features = ["full"] }
 tokio = { version = "1.18.2", features = ["full"] }
 tower = "0.4.12"
@@ -26,7 +26,7 @@ serde_yaml = "0.8"
 mime = { version = "0.3.16" }
 
 [dev-dependencies]
-axum = "0.5"
+axum = "0.6"
 reqwest = "0.11"
 tower-service = "0.3"
 tower = "0.4.12"
