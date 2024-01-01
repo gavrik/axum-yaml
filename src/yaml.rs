@@ -245,9 +245,7 @@ mod tests {
         let res = client.post("/").body("foo: bar").await;
 
         let status = res.status();
-
-        // TODO remove `as_u16()` (?)
-        assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE.as_u16());
+        assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
 
     #[tokio::test]
@@ -263,8 +261,7 @@ mod tests {
                 .body("foo: ")
                 .await;
 
-            // TODO res.status() == StatusCode::OK (?)
-            res.status() == StatusCode::OK.as_u16()
+            res.status() == StatusCode::OK
         }
 
         assert!(valid_yaml_content_type("application/yaml").await);
