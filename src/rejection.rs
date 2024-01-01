@@ -8,7 +8,7 @@ use crate::macros::{
 define_rejection! {
     #[status = BAD_REQUEST]
     #[body = "Failed to deserialize the YAML body into the target type"]
-    /// Rejection type for `Yaml` that contains the [`serde_yaml::Error`] type.
+    /// Rejection type for `Yaml` that takes the [`serde_yaml::Error`] type.
     ///
     /// This rejection is used when the request body cannot be deserialized
     /// into the target type or contains syntactically invalid YAML.
