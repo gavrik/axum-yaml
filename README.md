@@ -21,8 +21,8 @@ use axum::{
     routing::post,
     Router,
 };
-use serde::Deserialize;
 use axum_yaml::Yaml;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct CreateUser {
@@ -35,10 +35,11 @@ async fn create_user(Yaml(payload): Yaml<CreateUser>) {
 }
 
 let app = Router::new().route("/users", post(create_user));
-async {
-    axum::Server::bind(&"".parse().unwrap()).serve(app.into_make_service()).await.unwrap();
-};
 ```
+
+> [!NOTE]
+> Also, you can construct a `Yaml<T>` from a byte slice (`Yaml::from_bytes()`). Most users should prefer to use the `FromRequest` impl
+> but special cases may require first extracting a `Request` into `Bytes` then optionally constructing a `Yaml<T>`.
 
 ### Response example
 
@@ -50,9 +51,10 @@ use axum::{
     routing::get,
     Router,
 };
+
+use axum_yaml::Yaml;
 use serde::Serialize;
 use uuid::Uuid;
-use axum_yaml::Yaml;
 
 #[derive(Serialize)]
 struct User {
@@ -67,13 +69,9 @@ async fn get_user(Path(user_id) : Path<Uuid>) -> Yaml<User> {
 
 async fn find_user(user_id: Uuid) -> User {
     // ...
-    # unimplemented!()
 }
 
 let app = Router::new().route("/users/:id", get(get_user));
-async {
-    axum::Server::bind(&"".parse().unwrap()).serve(app.into_make_service()).await.unwrap();
-};
 ```
 
 ## License
