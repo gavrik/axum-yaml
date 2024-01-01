@@ -1,9 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
 use async_trait::async_trait;
-use axum_core::{extract::{FromRequest, Request}, response::{IntoResponse, Response}};
-use bytes::{BytesMut, BufMut, Bytes};
-use http::{header, HeaderValue, StatusCode, HeaderMap};
+use axum_core::{
+    extract::{FromRequest, Request},
+    response::{IntoResponse, Response},
+};
+use bytes::{BufMut, Bytes, BytesMut};
+use http::{header, HeaderMap, HeaderValue, StatusCode};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::rejection::*;
@@ -124,7 +127,7 @@ fn yaml_content_type(headers: &HeaderMap) -> bool {
 
     let is_yaml_content_type = mime.type_() == "application"
         && (mime.subtype() == "yaml" || mime.suffix().map_or(false, |name| name == "yaml"));
-    
+
     is_yaml_content_type
 }
 
@@ -152,7 +155,7 @@ impl<T> From<T> for Yaml<T> {
 
 impl<T> Yaml<T>
 where
-    T: DeserializeOwned
+    T: DeserializeOwned,
 {
     /// Construct a `Yaml<T>` from a byte slice. Most users should prefer to use the `FromRequest` impl
     /// but special cases may require first extracting a `Request` into `Bytes` then optionally
@@ -168,7 +171,7 @@ where
 }
 
 impl<T> IntoResponse for Yaml<T>
-where 
+where
     T: Serialize,
 {
     fn into_response(self) -> Response {
@@ -201,23 +204,23 @@ where
 mod tests {
     use super::*;
 
-    use axum::Router;
     use axum::routing::post;
+    use axum::Router;
     use http::StatusCode;
     use serde::Deserialize;
     use serde_yaml::Value;
 
     use crate::test_client::TestClient;
-    
+
     #[tokio::test]
     async fn deserialize_body() {
         #[derive(Debug, Deserialize)]
         struct Input {
             foo: String,
         }
-    
+
         let app = Router::new().route("/", post(|input: Yaml<Input>| async { input.0.foo }));
-    
+
         let client = TestClient::new(app);
         let res = client
             .post("/")
@@ -228,42 +231,42 @@ mod tests {
         let body = res.text().await;
         assert_eq!(body, "bar");
     }
-    
+
     #[tokio::test]
     async fn consume_body_to_yaml_requres_yaml_content_type() {
         #[derive(Debug, Deserialize)]
         struct Input {
             foo: String,
         }
-    
+
         let app = Router::new().route("/", post(|input: Yaml<Input>| async { input.0.foo }));
-    
+
         let client = TestClient::new(app);
         let res = client.post("/").body("foo: bar").await;
-    
+
         let status = res.status();
 
         // TODO remove `as_u16()` (?)
         assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE.as_u16());
     }
-    
+
     #[tokio::test]
     async fn yaml_content_types() {
-        async fn valid_yaml_content_type(content_type: &str) -> bool {   
+        async fn valid_yaml_content_type(content_type: &str) -> bool {
             println!("testing {:?}", content_type);
-    
+
             let app = Router::new().route("/", post(|Yaml(_): Yaml<Value>| async {}));
-    
+
             let res = TestClient::new(app)
                 .post("/")
                 .header("content-type", content_type)
                 .body("foo: ")
                 .await;
-    
+
             // TODO res.status() == StatusCode::OK (?)
             res.status() == StatusCode::OK.as_u16()
         }
-    
+
         assert!(valid_yaml_content_type("application/yaml").await);
         assert!(valid_yaml_content_type("application/yaml;charset=utf-8").await);
         assert!(valid_yaml_content_type("application/yaml; charset=utf-8").await);

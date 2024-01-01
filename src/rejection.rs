@@ -2,8 +2,7 @@
 use axum_core::extract::rejection::BytesRejection;
 
 use crate::macros::{
-    __define_rejection as define_rejection,
-    __composite_rejection as composite_rejection,
+    __composite_rejection as composite_rejection, __define_rejection as define_rejection,
 };
 
 define_rejection! {

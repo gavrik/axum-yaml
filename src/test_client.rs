@@ -1,7 +1,7 @@
 // This code was copied from axum crate with minor refactoring, removing unnecessary functionality
 // https://github.com/tokio-rs/axum/blob/71eedc6d6cd5fc706ae8d0bcabb49b74e46050f8/axum/src/test_helpers/test_client.rs#L1
 
-use std::{net::SocketAddr, convert::Infallible, future::IntoFuture};
+use std::{convert::Infallible, future::IntoFuture, net::SocketAddr};
 
 use axum::serve;
 use axum_core::{extract::Request, response::Response};
@@ -117,4 +117,3 @@ impl TestResponse {
         StatusCode::from_u16(self.response.status().as_u16()).unwrap()
     }
 }
-
