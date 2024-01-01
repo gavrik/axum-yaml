@@ -1,14 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
-use axum::{
-    async_trait,
-    body::Bytes,
-    extract::{FromRequest, Request},
-    http::{HeaderMap, StatusCode},
-    http::header::{self, HeaderValue},
-    response::{IntoResponse, Response},
-};
-use bytes::{BytesMut, BufMut};
+use async_trait::async_trait;
+use axum_core::{extract::{FromRequest, Request}, response::{IntoResponse, Response}};
+use bytes::{BytesMut, BufMut, Bytes};
+use http::{header, HeaderValue, StatusCode, HeaderMap};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::rejection::*;
@@ -28,8 +23,8 @@ use crate::rejection::*;
 ///     routing::post,
 ///     Router,
 /// };
-/// use serde::Deserialize;
 /// use axum_yaml::Yaml;
+/// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
 /// struct CreateUser {
@@ -47,7 +42,8 @@ use crate::rejection::*;
 /// #       tokio::net::TcpListener::bind("").await.unwrap(),
 /// #       app.into_make_service(),
 /// #   )
-/// #   .await?;
+/// #   .await
+/// #   .unwrap();
 /// # };
 /// ```
 ///
@@ -62,9 +58,9 @@ use crate::rejection::*;
 ///     routing::get,
 ///     Router,
 /// };
+/// use axum_yaml::Yaml;
 /// use serde::Serialize;
 /// use uuid::Uuid;
-/// use axum_yaml::Yaml;
 ///
 /// #[derive(Serialize)]
 /// struct User {
@@ -84,7 +80,12 @@ use crate::rejection::*;
 ///
 /// let app = Router::new().route("/users/:id", get(get_user));
 /// # async {
-/// #   axum::serve(tokio::net::TcpListener::bind("").await.unwrap(), app.into_make_service()).await?;
+/// #   axum::serve(
+/// #       tokio::net::TcpListener::bind("").await.unwrap(),
+/// #       app.into_make_service(),
+/// #   )
+/// #   .await
+/// #   .unwrap();
 /// # };
 /// ```
 #[derive(Debug, Clone, Copy, Default)]
@@ -161,7 +162,7 @@ where
 
         match serde_path_to_error::deserialize(deserializer) {
             Ok(value) => Ok(Yaml(value)),
-            Err(err) => Err(YamlDataError::from_err(err).into()),
+            Err(err) => Err(YamlError::from_err(err).into()),
         }
     }
 }
@@ -199,46 +200,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::SocketAddr;
-    use std::str::FromStr;
 
     use axum::Router;
     use axum::routing::post;
     use http::StatusCode;
-    use reqwest::RequestBuilder;
     use serde::Deserialize;
     use serde_yaml::Value;
-    use tokio::net::TcpListener;
 
-    struct TestClient {
-        client: reqwest::Client,
-        addr: SocketAddr,
-    }
-    
-    impl TestClient {
-        fn new(router: Router) -> Self {
-            let addr = SocketAddr::from_str("127.0.0.1:0").unwrap();
-    
-            tokio::spawn(async move {
-                let listener = TcpListener::bind(addr)
-                    .await
-                    .expect("Could not bind ephemeral socket");
-    
-                axum::serve(listener, router.into_make_service())
-                    .await
-                    .expect("Server error");
-            });
-    
-            Self {
-                client: reqwest::Client::new(),
-                addr,
-            }
-        }
-    
-        fn post(&self, url: &str) -> RequestBuilder {
-            self.client.post(format!("http://{}{}", self.addr, url))
-        }
-    }
+    use crate::test_client::TestClient;
     
     #[tokio::test]
     async fn deserialize_body() {
@@ -254,11 +223,9 @@ mod tests {
             .post("/")
             .body("foo: bar")
             .header("content-type", "application/yaml")
-            .send()
-            .await
-            .unwrap();
+            .await;
 
-        let body = res.text().await.unwrap();
+        let body = res.text().await;
         assert_eq!(body, "bar");
     }
     
@@ -272,16 +239,10 @@ mod tests {
         let app = Router::new().route("/", post(|input: Yaml<Input>| async { input.0.foo }));
     
         let client = TestClient::new(app);
-        let res = client
-            .post("/")
-            .body(r#"foo: bar"#)
-            .send()
-            .await
-            .unwrap();
+        let res = client.post("/").body("foo: bar").await;
     
         let status = res.status();
-        assert!(res.text().await.is_ok());
-    
+
         // TODO remove `as_u16()` (?)
         assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE.as_u16());
     }
@@ -297,9 +258,7 @@ mod tests {
                 .post("/")
                 .header("content-type", content_type)
                 .body("foo: ")
-                .send()
-                .await
-                .unwrap();
+                .await;
     
             // TODO res.status() == StatusCode::OK (?)
             res.status() == StatusCode::OK.as_u16()
@@ -309,5 +268,54 @@ mod tests {
         assert!(valid_yaml_content_type("application/yaml;charset=utf-8").await);
         assert!(valid_yaml_content_type("application/yaml; charset=utf-8").await);
         assert!(!valid_yaml_content_type("text/yaml").await);
+    }
+
+    #[tokio::test]
+    async fn invalid_yaml_syntax() {
+        let app = Router::new().route("/", post(|_: Yaml<Value>| async {}));
+
+        let client = TestClient::new(app);
+        let res = client
+            .post("/")
+            .body("- a\nb:")
+            .header("content-type", "application/yaml")
+            .await;
+
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[derive(Deserialize)]
+    struct Foo {
+        #[allow(dead_code)]
+        a: i32,
+        #[allow(dead_code)]
+        b: Vec<Bar>,
+    }
+
+    #[derive(Deserialize)]
+    struct Bar {
+        #[allow(dead_code)]
+        x: i32,
+        #[allow(dead_code)]
+        y: i32,
+    }
+
+    #[tokio::test]
+    async fn invalid_yaml_data() {
+        let app = Router::new().route("/", post(|_: Yaml<Foo>| async {}));
+
+        let client = TestClient::new(app);
+        let res = client
+            .post("/")
+            .body("a: 1\nb:\n    - x: 2")
+            .header("content-type", "application/yaml")
+            .await;
+
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body_text = res.text().await;
+        assert_eq!(
+            body_text,
+            "Failed to deserialize the YAML body into the target type: b[0]: b[0]: missing field `y` at line 3 column 7"
+        );
     }
 }

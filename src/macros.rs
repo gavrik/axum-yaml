@@ -1,5 +1,5 @@
-//! We use copied macros from axum-core because they are part of a private API that could change in the future
-//! https://github.com/tokio-rs/axum/blob/046e7299e1d48503ff78b4ae209b28523f16bd1f/axum-core/src/macros.rs#L1
+// We use copied macros from axum-core because they are part of a private API that could change in the future
+// https://github.com/tokio-rs/axum/blob/046e7299e1d48503ff78b4ae209b28523f16bd1f/axum-core/src/macros.rs#L1
 
 macro_rules! __log_rejection {
     (
@@ -34,8 +34,8 @@ macro_rules! __define_rejection {
         #[non_exhaustive]
         pub struct $name;
 
-        impl axum::response::IntoResponse for $name {
-            fn into_response(self) -> axum::response::Response {
+        impl axum_core::response::IntoResponse for $name {
+            fn into_response(self) -> axum_core::response::Response {
                 super::macros::__log_rejection!(
                     rejection_type = $name,
                     body_text = $body,
@@ -52,8 +52,8 @@ macro_rules! __define_rejection {
             }
 
             /// Get the status code used for this rejection.
-            pub fn status(&self) -> axum::http::StatusCode {
-                axum::http::StatusCode::$status
+            pub fn status(&self) -> http::StatusCode {
+                http::StatusCode::$status
             }
         }
 
@@ -80,19 +80,19 @@ macro_rules! __define_rejection {
     ) => {
         $(#[$m])*
         #[derive(Debug)]
-        pub struct $name(pub(crate) axum::Error);
+        pub struct $name(pub(crate) axum_core::Error);
 
         impl $name {
             pub(crate) fn from_err<E>(err: E) -> Self
             where
-                E: Into<axum::BoxError>,
+                E: Into<axum_core::BoxError>,
             {
-                Self(axum::Error::new(err))
+                Self(axum_core::Error::new(err))
             }
         }
 
-        impl axum::response::IntoResponse for $name {
-            fn into_response(self) -> axum::response::Response {
+        impl axum_core::response::IntoResponse for $name {
+            fn into_response(self) -> axum_core::response::Response {
                 super::macros::__log_rejection!(
                     rejection_type = $name,
                     body_text = self.body_text(),
@@ -109,8 +109,8 @@ macro_rules! __define_rejection {
             }
 
             /// Get the status code used for this rejection.
-            pub fn status(&self) -> axum::http::StatusCode {
-                axum::http::StatusCode::$status
+            pub fn status(&self) -> http::StatusCode {
+                http::StatusCode::$status
             }
         }
 
@@ -147,8 +147,8 @@ macro_rules! __composite_rejection {
             ),+
         }
 
-        impl axum::response::IntoResponse for $name {
-            fn into_response(self) -> axum::response::Response {
+        impl axum_core::response::IntoResponse for $name {
+            fn into_response(self) -> axum_core::response::Response {
                 match self {
                     $(
                         Self::$variant(inner) => inner.into_response(),
@@ -168,7 +168,7 @@ macro_rules! __composite_rejection {
             }
 
             /// Get the status code used for this rejection.
-            pub fn status(&self) -> axum::http::StatusCode {
+            pub fn status(&self) -> http::StatusCode {
                 match self {
                     $(
                         Self::$variant(inner) => inner.status(),

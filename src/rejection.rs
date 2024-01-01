@@ -7,13 +7,13 @@ use crate::macros::{
 };
 
 define_rejection! {
-    #[status = UNPROCESSABLE_ENTITY]
+    #[status = BAD_REQUEST]
     #[body = "Failed to deserialize the YAML body into the target type"]
-    /// Rejection type for `Yaml`.
+    /// Rejection type for `Yaml` that contains the [`serde_yaml::Error`] type.
     ///
-    /// This rejection is used if the request body is syntactically valid YAML but couldn't be
-    /// deserialized into the target type.
-    pub struct YamlDataError(Error);
+    /// This rejection is used when the request body cannot be deserialized
+    /// into the target type or contains syntactically invalid YAML.
+    pub struct YamlError(Error);
 }
 
 define_rejection! {
@@ -26,7 +26,7 @@ define_rejection! {
 
 composite_rejection! {
     pub enum YamlRejection {
-        YamlDataError,
+        YamlError,
         MissingYamlContentType,
         BytesRejection,
     }

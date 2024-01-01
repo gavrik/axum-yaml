@@ -6,6 +6,9 @@
 
 mod macros;
 
+#[cfg(test)]
+mod test_client;
+
 pub mod yaml;
 pub mod rejection;
 
