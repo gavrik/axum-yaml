@@ -13,7 +13,7 @@
 
 ### Extractor example
 
-When used as an extractor, it can deserialize request bodies into some type that implements [`serde::Deserialize`]. If the request body cannot be parsed, or it does not contain the `Content-Type: application/yaml` header, it will reject the request and return a `400 Bad Request` response.
+When used as an extractor, it can deserialize request bodies into some type that implements `serde::Deserialize`. If the request body cannot be parsed, or it does not contain the `Content-Type: application/yaml` header, it will reject the request and return a `400 Bad Request` response.
 
 ```rust
 use axum::{
@@ -43,7 +43,7 @@ let app = Router::new().route("/users", post(create_user));
 
 ### Response example
 
-When used as a response, it can serialize any type that implements [`serde::Serialize`] to `YAML`, and will automatically set `Content-Type: application/yaml` header.
+When used as a response, it can serialize any type that implements `serde::Serialize` to `YAML`, and will automatically set `Content-Type: application/yaml` header.
 
 ```rust
 use axum::{
