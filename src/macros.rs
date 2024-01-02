@@ -1,4 +1,28 @@
-macro_rules! define_rejection {
+// We use copied macros from axum-core because they are part of a private API that could change in the future
+// https://github.com/tokio-rs/axum/blob/046e7299e1d48503ff78b4ae209b28523f16bd1f/axum-core/src/macros.rs#L1
+
+macro_rules! __log_rejection {
+    (
+        rejection_type = $ty:ident,
+        body_text = $body_text:expr,
+        status = $status:expr,
+    ) => {
+        #[cfg(feature = "tracing")]
+        {
+            tracing::event!(
+                target: "axum_yaml::rejection", // Renamed to "axum_yaml"
+                tracing::Level::TRACE,
+                status = $status.as_u16(),
+                body = $body_text,
+                rejection_type = std::any::type_name::<$ty>(),
+                "rejecting request",
+            );
+        }
+    };
+}
+pub(crate) use __log_rejection;
+
+macro_rules! __define_rejection {
     (
         #[status = $status:ident]
         #[body = $body:expr]
@@ -10,9 +34,26 @@ macro_rules! define_rejection {
         #[non_exhaustive]
         pub struct $name;
 
-        impl axum::response::IntoResponse for $name {
-            fn into_response(self) -> axum::response::Response {
-                (axum::http::StatusCode::$status, $body).into_response()
+        impl axum_core::response::IntoResponse for $name {
+            fn into_response(self) -> axum_core::response::Response {
+                super::macros::__log_rejection!(
+                    rejection_type = $name,
+                    body_text = $body,
+                    status = http::StatusCode::$status,
+                );
+                (self.status(), $body).into_response()
+            }
+        }
+
+        impl $name {
+            /// Get the response body text used for this rejection.
+            pub fn body_text(&self) -> String {
+                $body.into()
+            }
+
+            /// Get the status code used for this rejection.
+            pub fn status(&self) -> http::StatusCode {
+                http::StatusCode::$status
             }
         }
 
@@ -39,23 +80,37 @@ macro_rules! define_rejection {
     ) => {
         $(#[$m])*
         #[derive(Debug)]
-        pub struct $name(pub(crate) crate::Error);
+        pub struct $name(pub(crate) axum_core::Error);
 
         impl $name {
             pub(crate) fn from_err<E>(err: E) -> Self
             where
-                E: Into<crate::BoxError>,
+                E: Into<axum_core::BoxError>,
             {
-                Self(crate::Error::new(err))
+                Self(axum_core::Error::new(err))
             }
         }
 
-        impl axum::response::IntoResponse for $name {
-            fn into_response(self) -> axum::response::Response {
-                (
-                    axum::http::StatusCode::$status,
-                    format!(concat!($body, ": {}"), self.0),
-                ).into_response()
+        impl axum_core::response::IntoResponse for $name {
+            fn into_response(self) -> axum_core::response::Response {
+                super::macros::__log_rejection!(
+                    rejection_type = $name,
+                    body_text = self.body_text(),
+                    status = http::StatusCode::$status,
+                );
+                (self.status(), self.body_text()).into_response()
+            }
+        }
+
+        impl $name {
+            /// Get the response body text used for this rejection.
+            pub fn body_text(&self) -> String {
+                format!(concat!($body, ": {}"), self.0).into()
+            }
+
+            /// Get the status code used for this rejection.
+            pub fn status(&self) -> http::StatusCode {
+                http::StatusCode::$status
             }
         }
 
@@ -72,8 +127,9 @@ macro_rules! define_rejection {
         }
     };
 }
+pub(crate) use __define_rejection;
 
-macro_rules! composite_rejection {
+macro_rules! __composite_rejection {
     (
         $(#[$m:meta])*
         pub enum $name:ident {
@@ -91,11 +147,31 @@ macro_rules! composite_rejection {
             ),+
         }
 
-        impl axum::response::IntoResponse for $name {
-            fn into_response(self) -> axum::response::Response {
+        impl axum_core::response::IntoResponse for $name {
+            fn into_response(self) -> axum_core::response::Response {
                 match self {
                     $(
                         Self::$variant(inner) => inner.into_response(),
+                    )+
+                }
+            }
+        }
+
+        impl $name {
+            /// Get the response body text used for this rejection.
+            pub fn body_text(&self) -> String {
+                match self {
+                    $(
+                        Self::$variant(inner) => inner.body_text(),
+                    )+
+                }
+            }
+
+            /// Get the status code used for this rejection.
+            pub fn status(&self) -> http::StatusCode {
+                match self {
+                    $(
+                        Self::$variant(inner) => inner.status(),
                     )+
                 }
             }
@@ -113,7 +189,7 @@ macro_rules! composite_rejection {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self {
                     $(
-                        Self::$variant(inner) => write!(f, "{}", inner),
+                        Self::$variant(inner) => write!(f, "{inner}"),
                     )+
                 }
             }
@@ -123,10 +199,11 @@ macro_rules! composite_rejection {
             fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
                 match self {
                     $(
-                        Self::$variant(inner) => Some(inner),
+                        Self::$variant(inner) => inner.source(),
                     )+
                 }
             }
         }
     };
 }
+pub(crate) use __composite_rejection;
