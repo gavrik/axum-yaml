@@ -1,6 +1,5 @@
 use std::ops::{Deref, DerefMut};
 
-use async_trait::async_trait;
 use axum_core::{
     extract::{FromRequest, Request},
     response::{IntoResponse, Response},
@@ -94,7 +93,6 @@ use crate::rejection::*;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Yaml<T>(pub T);
 
-#[async_trait]
 impl<T, S> FromRequest<S> for Yaml<T>
 where
     T: DeserializeOwned,

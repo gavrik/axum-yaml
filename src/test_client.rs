@@ -84,7 +84,9 @@ impl RequestBuilder {
         let value: HeaderValue = value.try_into().map_err(Into::into).unwrap();
         let value = reqwest::header::HeaderValue::from_bytes(value.as_bytes()).unwrap();
 
-        self.builder = self.builder.header(key, value);
+        self.builder = self
+            .builder
+            .header::<reqwest::header::HeaderName, reqwest::header::HeaderValue>(key, value);
 
         self
     }

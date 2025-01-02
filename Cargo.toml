@@ -1,6 +1,6 @@
 [package]
 name = "axum-yaml"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 authors = ["Mykhailo (Mike) Gavrylov <gavrikster@gmail.com>"]
 description = "YAML extractor for axum"
@@ -15,7 +15,7 @@ exclude = [
 
 [dependencies]
 async-trait = "0.1"
-axum-core = "0.4"
+axum-core = "0.5"
 bytes = "1.5"
 http = "1.0"
 serde = { version = "1.0", features = ["derive"]}
@@ -24,10 +24,10 @@ serde_yaml = "0.9"
 mime = "0.3"
 
 [dev-dependencies]
-axum = "0.7"
+axum = "0.8"
 futures-util = "0.3"
-reqwest = "0.11"
+reqwest = "0.12"
 tokio = "1.35"
-tower = "0.4"
+tower = "0.5"
 tower-service = "0.3"
 uuid = { version = "1.1", features = ["serde"] }
